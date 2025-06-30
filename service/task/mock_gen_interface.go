@@ -16,32 +16,32 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockStore is a mock of Store interface.
-type MockStore struct {
+// Mockstore is a mock of Store interface.
+type Mockstore struct {
 	ctrl     *gomock.Controller
 	recorder *MockStoreMockRecorder
 	isgomock struct{}
 }
 
-// MockStoreMockRecorder is the mock recorder for MockStore.
+// MockStoreMockRecorder is the mock recorder for Mockstore.
 type MockStoreMockRecorder struct {
-	mock *MockStore
+	mock *Mockstore
 }
 
 // NewMockStore creates a new mock instance.
-func NewMockStore(ctrl *gomock.Controller) *MockStore {
-	mock := &MockStore{ctrl: ctrl}
+func NewMockStore(ctrl *gomock.Controller) *Mockstore {
+	mock := &Mockstore{ctrl: ctrl}
 	mock.recorder = &MockStoreMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockStore) EXPECT() *MockStoreMockRecorder {
+func (m *Mockstore) EXPECT() *MockStoreMockRecorder {
 	return m.recorder
 }
 
 // Completetask mocks base method.
-func (m *MockStore) Completetask(id int) (string, error) {
+func (m *Mockstore) Completetask(id int) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Completetask", id)
 	ret0, _ := ret[0].(string)
@@ -52,11 +52,11 @@ func (m *MockStore) Completetask(id int) (string, error) {
 // Completetask indicates an expected call of Completetask.
 func (mr *MockStoreMockRecorder) Completetask(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Completetask", reflect.TypeOf((*MockStore)(nil).Completetask), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Completetask", reflect.TypeOf((*Mockstore)(nil).Completetask), id)
 }
 
 // Deletetask mocks base method.
-func (m *MockStore) Deletetask(id int) (string, error) {
+func (m *Mockstore) Deletetask(id int) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Deletetask", id)
 	ret0, _ := ret[0].(string)
@@ -67,11 +67,11 @@ func (m *MockStore) Deletetask(id int) (string, error) {
 // Deletetask indicates an expected call of Deletetask.
 func (mr *MockStoreMockRecorder) Deletetask(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Deletetask", reflect.TypeOf((*MockStore)(nil).Deletetask), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Deletetask", reflect.TypeOf((*Mockstore)(nil).Deletetask), id)
 }
 
 // Getalltask mocks base method.
-func (m *MockStore) Getalltask() ([]task.Task, error) {
+func (m *Mockstore) Getalltask() ([]task.Task, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Getalltask")
 	ret0, _ := ret[0].([]task.Task)
@@ -82,11 +82,11 @@ func (m *MockStore) Getalltask() ([]task.Task, error) {
 // Getalltask indicates an expected call of Getalltask.
 func (mr *MockStoreMockRecorder) Getalltask() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Getalltask", reflect.TypeOf((*MockStore)(nil).Getalltask))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Getalltask", reflect.TypeOf((*Mockstore)(nil).Getalltask))
 }
 
 // Gettaskbyid mocks base method.
-func (m *MockStore) Gettaskbyid(id int) (*task.Task, error) {
+func (m *Mockstore) Gettaskbyid(id int) (*task.Task, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Gettaskbyid", id)
 	ret0, _ := ret[0].(*task.Task)
@@ -97,11 +97,11 @@ func (m *MockStore) Gettaskbyid(id int) (*task.Task, error) {
 // Gettaskbyid indicates an expected call of Gettaskbyid.
 func (mr *MockStoreMockRecorder) Gettaskbyid(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Gettaskbyid", reflect.TypeOf((*MockStore)(nil).Gettaskbyid), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Gettaskbyid", reflect.TypeOf((*Mockstore)(nil).Gettaskbyid), id)
 }
 
 // Insertask mocks base method.
-func (m *MockStore) Insertask(t task.Task) (string, error) {
+func (m *Mockstore) Insertask(t task.Task) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Insertask", t)
 	ret0, _ := ret[0].(string)
@@ -112,5 +112,5 @@ func (m *MockStore) Insertask(t task.Task) (string, error) {
 // Insertask indicates an expected call of Insertask.
 func (mr *MockStoreMockRecorder) Insertask(t any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insertask", reflect.TypeOf((*MockStore)(nil).Insertask), t)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insertask", reflect.TypeOf((*Mockstore)(nil).Insertask), t)
 }

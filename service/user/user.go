@@ -15,7 +15,7 @@ func New(s Store) *service {
 
 func (s *service) InsertUser(u User_Model.User) (string, error) {
 	if u.Name == "" || u.Phone == "" || u.Email == "" {
-		return "", errors.New("all fields (name, phone, email) are required")
+		return "all fields (name, phone, email) are required", errors.New("all fields (name, phone, email) are required")
 	}
 	return s.store.InsertUser(u)
 }
@@ -28,7 +28,18 @@ func (s *service) GetUserByID(id int) (*User_Model.User, error) {
 }
 
 func (s *service) GetAllUsers() ([]User_Model.User, error) {
-	return s.store.GetAllUsers()
+	users, err := s.store.GetAllUsers()
+	if err != nil {
+		return nil, err
+	}
+
+	var filtered []User_Model.User
+	for _, t := range users {
+		if t.Name != "" && t.Phone != "" && t.Email != "" {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered, nil
 }
 
 func (s *service) DeleteAllUsers() (string, error) {

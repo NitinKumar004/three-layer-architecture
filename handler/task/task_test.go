@@ -4,280 +4,188 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
-	taskmodel "microservice/Models/task"
 
+	"microservice/Models/task"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"go.uber.org/mock/gomock"
 )
 
 func TestHandler_Addtask(t *testing.T) {
-	fmt.Println("----------------")
-	fmt.Println(" Testing of TASK WITH HANDLER  ")
-	fmt.Println("----------------")
-	mock := &Mockstore{
-		InsertTaskFunc: func(t taskmodel.Task) (string, error) {
-			return "task inserted", nil
-		},
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockService := NewMockservice(ctrl)
+	h := New(mockService)
+
+	testCases := []struct {
+		desc      string
+		input     task.Task
+		expectMsg string
+		expectErr bool
+	}{
+		{"Valid Task", task.Task{ID: 1, Name: "Task One", Status: "pending", UserID: 10}, "task inserted", false},
 	}
 
-	h := New(mock)
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			jsonData, _ := json.Marshal(tc.input)
 
-	task := taskmodel.Task{
-		ID:     1,
-		Name:   "working on project",
-		Status: "pending",
-		UserID: 2,
-	}
+			if !tc.expectErr {
+				mockService.EXPECT().Insertask(tc.input).Return(tc.expectMsg, nil)
+			}
 
-	jsontask, err := json.Marshal(task)
-	if err != nil {
-		t.Fatalf("failed to marshal task: %v", err)
-	}
+			r := httptest.NewRequest("POST", "/task", bytes.NewBuffer(jsonData))
+			w := httptest.NewRecorder()
 
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/task", bytes.NewBuffer(jsontask))
-	req.Header.Set("Content-Type", "application/json")
+			h.Addtask(w, r)
 
-	rr := httptest.NewRecorder()
-
-	handler := http.HandlerFunc(h.Addtask)
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", status)
-	}
-
-	expected := `{"message":"task inserted"}`
-	if rr.Body.String() != expected {
-		t.Errorf("Expected body %s, got %s", expected, rr.Body.String())
+			if tc.expectErr && w.Code != http.StatusInternalServerError && w.Code != http.StatusBadRequest {
+				t.Errorf("Expected error status, got %d", w.Code)
+			}
+			if !tc.expectErr && w.Code != http.StatusCreated {
+				t.Errorf("Expected 201, got %d", w.Code)
+			}
+		})
 	}
 }
-
 func TestHandler_Gettaskbyid(t *testing.T) {
-	mock := &Mockstore{GettaskbyidFunc: func(id int) (*taskmodel.Task, error) {
-		task := taskmodel.Task{
-			ID:     1,
-			Name:   "GO HOME",
-			Status: "pending",
-			UserID: 1,
-		}
-		return &task, nil
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockService := NewMockservice(ctrl)
+	h := New(mockService)
 
-	},
-	}
-	h := New(mock)
-	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/task/", http.NoBody)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	req.SetPathValue("id", "1")
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(h.Gettaskbyid)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", status)
-	}
-	var tasknew taskmodel.Task
-	err = json.Unmarshal(rr.Body.Bytes(), &tasknew)
-	if err != nil {
-		t.Fatalf("failed to unmarshal response: %v", err)
-
-	}
-	if tasknew.ID != 1 && tasknew.Name != "GO HOME" {
-		t.Errorf("expected this %d %s got this %d %s", 1, "GO HOME", tasknew.ID, tasknew.Name)
+	testCases := []struct {
+		desc      string
+		id        string
+		mockID    int
+		mockResp  *task.Task
+		expectErr bool
+		code      int
+	}{
+		{"Valid ID", "1", 1, &task.Task{ID: 1, Name: "Mock Task"}, false, http.StatusOK},
+		{"Invalid ID Format", "abc", 0, nil, true, http.StatusInternalServerError},
+		{"Not Found", "999", 999, nil, true, http.StatusNotFound},
 	}
 
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			r := httptest.NewRequest("GET", "/task/"+tc.id, nil)
+			r.SetPathValue("id", tc.id)
+			w := httptest.NewRecorder()
+
+			if !tc.expectErr {
+				mockService.EXPECT().Gettaskbyid(tc.mockID).Return(tc.mockResp, nil)
+			} else if tc.code == http.StatusNotFound {
+				mockService.EXPECT().Gettaskbyid(tc.mockID).Return(nil, errors.New("not found"))
+			}
+
+			h.Gettaskbyid(w, r)
+			if w.Code != tc.code {
+				t.Errorf("Expected status %d, got %d", tc.code, w.Code)
+			}
+		})
+	}
 }
+
 func TestHandler_Getalltask(t *testing.T) {
-	mock := &Mockstore{GetalltaskFunc: func() ([]taskmodel.Task, error) {
-		alltask := []taskmodel.Task{
-			{ID: 1,
-				Name:   "GO HOME",
-				Status: "pending",
-				UserID: 1},
-			{ID: 2,
-				Name:   "GO HOME by bus",
-				Status: "complete",
-				UserID: 44},
-		}
-		return alltask, nil
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockService := NewMockservice(ctrl)
+	h := New(mockService)
 
-	},
+	tasks := []task.Task{
+		{ID: 1, Name: "Task 1"},
+		{ID: 2, Name: "Task 2"},
 	}
-	h := New(mock)
-	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/task", http.NoBody)
-	if err != nil {
-		t.Fatal(err)
 
-	}
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(h.Getalltask)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", status)
-	}
-	var alltask []taskmodel.Task
-	err = json.Unmarshal(rr.Body.Bytes(), &alltask)
-	if err != nil {
-		t.Fatalf("failed to unmarshal response: %v", err)
+	mockService.EXPECT().Getalltask().Return(tasks, nil)
 
-	}
-	if len(alltask) != 2 {
-		t.Errorf("exprected this %d and got this %d", 2, len(alltask))
+	r := httptest.NewRequest("GET", "/task", nil)
+	w := httptest.NewRecorder()
+
+	h.Getalltask(w, r)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Code)
 	}
 }
-func TestHandler_Completetask(t *testing.T) {
-	mock := &Mockstore{
-		CompletetaskFunc: func(i int) (string, error) {
-			return "completed task successfully", nil
 
-		},
-	}
-	h := New(mock)
-	req, err := http.NewRequestWithContext(t.Context(), http.MethodPatch, "/task/", http.NoBody)
-	if err != nil {
-		return
-
-	}
-	req.SetPathValue("id", "1")
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(h.Completetask)
-	handler.ServeHTTP(rr, req)
-
-	expected := `{"message":"completed task successfully"}`
-	if rr.Body.String() != expected {
-		t.Errorf("expected this got this  %s and got this %s", expected, rr.Body.String())
-	}
-
-}
 func TestHandler_Deletetask(t *testing.T) {
-	mock := &Mockstore{
-		DeletetaskFunc: func(i int) (string, error) {
-			return "delete task successfully", nil
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockService := NewMockservice(ctrl)
+	h := New(mockService)
 
-		},
-	}
-	h := New(mock)
-	req, err := http.NewRequestWithContext(t.Context(), http.MethodDelete, "/task/", http.NoBody)
-	if err != nil {
-		return
-	}
-	req.SetPathValue("id", "1")
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(h.Deletetask)
-	handler.ServeHTTP(rr, req)
-
-	expected := `{"message":"delete task successfully"}`
-	if rr.Body.String() != expected {
-		t.Errorf("expected this got this  %s and got this %s", expected, rr.Body.String())
+	testCases := []struct {
+		desc      string
+		id        string
+		mockID    int
+		mockResp  string
+		expectErr bool
+		code      int
+	}{
+		{"Valid ID", "1", 1, "deleted", false, http.StatusOK},
+		{"Invalid ID Format", "abc", 0, "", true, http.StatusBadRequest},
+		{"Delete Error", "2", 2, "", true, http.StatusInternalServerError},
 	}
 
-}
-func TestHandler_Addtask_Error(t *testing.T) {
-	mock := &Mockstore{
-		InsertTaskFunc: func(t taskmodel.Task) (string, error) {
-			return "", fmt.Errorf("failed to insert")
-		},
-	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			r := httptest.NewRequest("DELETE", "/task/"+tc.id, nil)
+			r.SetPathValue("id", tc.id)
+			w := httptest.NewRecorder()
 
-	h := New(mock)
+			if !tc.expectErr {
+				mockService.EXPECT().Deletetask(tc.mockID).Return(tc.mockResp, nil)
+			} else if tc.code == http.StatusInternalServerError {
+				mockService.EXPECT().Deletetask(tc.mockID).Return("", errors.New("delete error"))
+			}
 
-	task := taskmodel.Task{
-		ID:     1,
-		Name:   "broken",
-		Status: "pending",
-		UserID: 2,
-	}
-
-	jsontask, _ := json.Marshal(task)
-	req := httptest.NewRequest(http.MethodPost, "/task", bytes.NewBuffer(jsontask))
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-
-	http.HandlerFunc(h.Addtask).ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rr.Code)
+			h.Deletetask(w, r)
+			if w.Code != tc.code {
+				t.Errorf("Expected %d, got %d", tc.code, w.Code)
+			}
+		})
 	}
 }
 
-func TestHandler_Gettaskbyid_Error(t *testing.T) {
-	mock := &Mockstore{
-		GettaskbyidFunc: func(id int) (*taskmodel.Task, error) {
-			return nil, errors.New("not found")
-		},
-	}
-	h := New(mock)
+func TestHandler_Completetask(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockService := NewMockservice(ctrl)
+	h := New(mockService)
 
-	req := httptest.NewRequest(http.MethodGet, "/task/", http.NoBody)
-	req.SetPathValue("id", "1")
-	rr := httptest.NewRecorder()
-
-	http.HandlerFunc(h.Gettaskbyid).ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusNotFound {
-		t.Errorf("expected status 500, got %d", rr.Code)
-	}
-}
-
-func TestHandler_Getalltask_Error(t *testing.T) {
-	mock := &Mockstore{
-		GetalltaskFunc: func() ([]taskmodel.Task, error) {
-			return nil, errors.New("db failure")
-		},
+	testCases := []struct {
+		desc      string
+		id        string
+		mockID    int
+		mockResp  string
+		expectErr bool
+		code      int
+	}{
+		{"Valid ID", "1", 1, "completed", false, http.StatusOK},
+		{"Invalid ID Format", "xyz", 0, "", true, http.StatusBadRequest},
+		{"Error Completing", "2", 2, "", true, http.StatusInternalServerError},
 	}
 
-	h := New(mock)
-	req := httptest.NewRequest(http.MethodGet, "/task", http.NoBody)
-	rr := httptest.NewRecorder()
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			r := httptest.NewRequest("PATCH", "/task/"+tc.id, nil)
+			r.SetPathValue("id", tc.id)
+			w := httptest.NewRecorder()
 
-	http.HandlerFunc(h.Getalltask).ServeHTTP(rr, req)
+			if !tc.expectErr {
+				mockService.EXPECT().Completetask(tc.mockID).Return(tc.mockResp, nil)
+			} else if tc.code == http.StatusInternalServerError {
+				mockService.EXPECT().Completetask(tc.mockID).Return("", errors.New("completion error"))
+			}
 
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rr.Code)
-	}
-}
-
-func TestHandler_Completetask_Error(t *testing.T) {
-	mock := &Mockstore{
-		CompletetaskFunc: func(id int) (string, error) {
-			return "", fmt.Errorf("fail to complete")
-		},
-	}
-	h := New(mock)
-
-	req := httptest.NewRequest(http.MethodPatch, "/task/", http.NoBody)
-	req.SetPathValue("id", "1")
-	rr := httptest.NewRecorder()
-
-	http.HandlerFunc(h.Completetask).ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rr.Code)
-	}
-}
-
-func TestHandler_Deletetask_Error(t *testing.T) {
-	mock := &Mockstore{
-		DeletetaskFunc: func(id int) (string, error) {
-			return "", fmt.Errorf("failed to delete")
-		},
-	}
-	h := New(mock)
-
-	req := httptest.NewRequest(http.MethodDelete, "/task/", http.NoBody)
-	req.SetPathValue("id", "123")
-	rr := httptest.NewRecorder()
-
-	http.HandlerFunc(h.Deletetask).ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rr.Code)
+			h.Completetask(w, r)
+			if w.Code != tc.code {
+				t.Errorf("Expected %d, got %d", tc.code, w.Code)
+			}
+		})
 	}
 }

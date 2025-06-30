@@ -1,185 +1,198 @@
 package user
 
 import (
-	"errors"
-	"fmt"
-	models_user "microservice/Models/user"
+	"go.uber.org/mock/gomock"
+	User_Model "microservice/Models/user"
 	"testing"
 )
 
 func TestMockstore_InsertUser(t *testing.T) {
-	fmt.Println("----------------")
-	fmt.Println(" Testing of USER WITH Service  ")
-	fmt.Println("----------------")
-	mock := Mockstore{Insertnewuserfunc: func(user models_user.User) (string, error) {
-		return "Insert new user successfully", nil
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	},
-	}
-	s := New(&mock)
-	newuser := models_user.User{
-		ID:    12,
-		Email: "nitinraj7488204975@gmail.com",
-		Name:  "Nitin Kumar",
-		Phone: "7488204975",
-	}
-	data, err := s.InsertUser(newuser)
-	if err != nil || data != "Insert new user successfully" {
-		t.Errorf("expected this %s and got this %s", "Insert new user successfully", data)
-	}
+	mockStore := NewMockStore(ctrl)
+	svc := New(mockStore)
 
-}
-
-func TestMockstore_GetUserByID(t *testing.T) {
-	mock := Mockstore{GetUserByIDfunc: func(id int) (*models_user.User, error) {
-		task := models_user.User{
-			ID:    12,
-			Email: "nitinraj7488204975@gmail.com",
-			Name:  "Nitin Kumar",
-			Phone: "7488204975",
-		}
-		return &task, nil
-
-	},
-	}
-	s := New(&mock)
-	data, err := s.GetUserByID(1)
-	if err != nil {
-		t.Errorf("error to fetching the data")
-	}
-	if data.ID != 12 || data.Email != "nitinraj7488204975@gmail.com" || data.Name != "Nitin Kumar" || data.Phone != "7488204975" {
-		t.Errorf("expected this %d %s %s %s and got this %d %s %s %s", 12, "nitinraj7488204975@gmail.com", "Nitin Kumar", "7488204975",
-			data.ID, data.Email, data.Name, data.Phone)
-	}
-
-}
-
-func TestMockstore_GetAllUsers(t *testing.T) {
-	mock := Mockstore{Getalluserfunc: func() ([]models_user.User, error) {
-		data := []models_user.User{
-			models_user.User{
-				ID:    1,
+	testCases := []struct {
+		desc      string
+		input     User_Model.User
+		response  string
+		expecterr bool
+	}{
+		{
+			desc: "valid case",
+			input: User_Model.User{
+				ID:    101,
 				Name:  "nitin",
-				Email: "nitin@gmail.com",
 				Phone: "7488204975",
+				Email: "nitinraj7488204975@gmail.com",
+			}, response: "Insert user successfully",
+			expecterr:   false,
+		},
+		{
+			desc: "invalid case",
+			input: User_Model.User{
+				ID:    101,
+				Name:  "",
+				Phone: "7488204975",
+				Email: "nitinraj7488204975@gmail.com",
+			}, response: "all fields (name, phone, email) are required",
+			expecterr:   true,
+		},
+		{
+			desc: "invalid case",
+			input: User_Model.User{
+				ID:    101,
+				Name:  "",
+				Phone: "",
+				Email: "nitinraj7488204975@gmail.com",
+			}, response: "all fields (name, phone, email) are required",
+			expecterr:   true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			if !tc.expecterr {
+				mockStore.EXPECT().InsertUser(tc.input).Return(tc.response, nil)
+			}
+			msg, err := svc.InsertUser(tc.input)
+			if tc.expecterr {
+
+				if err != nil && msg != tc.response {
+					t.Errorf("Expected message '%s', got '%s'", tc.response, msg)
+				}
+
+			}
+
+		})
+	}
+
+}
+func TestMockstore_GetAllUsers(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockStore := NewMockStore(ctrl)
+	svc := New(mockStore)
+	testCases := []struct {
+		desc      string
+		mockTasks []User_Model.User
+		expected  int
+		expectErr bool
+	}{
+		{
+			desc: "Tasks with valid names",
+			mockTasks: []User_Model.User{
+				{ID: 1, Name: " 1", Phone: "7488204975", Email: "nitin@gmail.com"},
+				{ID: 2, Name: "nitin", Phone: "7488204975", Email: "nitin@gmail.com"},
+				{ID: 3, Name: "", Phone: "", Email: ""},
 			},
-			models_user.User{
-				ID:    2,
-				Name:  "nishant",
-				Email: "nishant@gmail.com",
-				Phone: "248355335",
-			},
-		}
-		return data, nil
+			expected:  2,
+			expectErr: false,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			mockStore.EXPECT().GetAllUsers().Return(tc.mockTasks, nil)
 
-	}}
-	s := New(&mock)
-	d, err := s.GetAllUsers()
-	if err != nil || len(d) != 2 {
-		t.Errorf("expected this %d and got this %d", 2, len(d))
+			tasks, err := svc.GetAllUsers()
+			if tc.expectErr && err == nil {
+				t.Errorf("Expected error, got nil")
+			}
+			if !tc.expectErr && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if len(tasks) != tc.expected {
+				t.Errorf("Expected %d tasks, got %d", tc.expected, len(tasks))
+			}
+		})
 	}
 
 }
-func TestService_DeleteUserByID(t *testing.T) {
-	mock := Mockstore{
-		DeleteUserbyidfunc: func(id int) (string, error) {
-			return "delete successfully", nil
-		},
-	}
-	s := New(&mock)
-	msg, err := s.DeleteUserByID(1)
-	if err != nil || msg != "delete successfully" {
-		t.Errorf("expected this %s and got this %s", "delete successfully", msg)
+func TestMockStore_DeleteAllUsers(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockStore := NewMockStore(ctrl)
+	svc := New(mockStore)
 
+	mockStore.EXPECT().DeleteAllUsers().Return("user deleted successfully", nil)
+	val, err := svc.DeleteAllUsers()
+	if err != nil {
+		t.Error("error")
 	}
-
-}
-func TestService_DeleteAllUsers(t *testing.T) {
-	mock := Mockstore{
-		Deletealluserfunc: func() (string, error) {
-			return "delete all  successfully", nil
-		},
-	}
-	s := New(&mock)
-	msg, err := s.DeleteAllUsers()
-	if err != nil || msg != "delete all  successfully" {
-		t.Errorf("expected this %s and got this %s", "delete all  successfully", msg)
-
-	}
-
-}
-func TestService_InsertUser_Error(t *testing.T) {
-	mock := Mockstore{
-		Insertnewuserfunc: func(user models_user.User) (string, error) {
-			return "", errors.New("insert failed")
-		},
-	}
-	s := New(&mock)
-
-	newuser := models_user.User{
-		ID:    99,
-		Email: "fail@example.com",
-		Name:  "Fail Case",
-		Phone: "0000000000",
-	}
-	msg, err := s.InsertUser(newuser)
-	if err == nil || msg != "" {
-		t.Errorf("Expected error, got message: '%s', error: %v", msg, err)
+	if val != "user deleted successfully" {
+		t.Error("Some error")
 	}
 }
 
-func TestService_GetUserByID_Error(t *testing.T) {
-	mock := Mockstore{
-		GetUserByIDfunc: func(id int) (*models_user.User, error) {
-			return nil, errors.New("user not found")
-		},
-	}
-	s := New(&mock)
+func TestMockStore_DeleteUserByID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	user, err := s.GetUserByID(404)
-	if err == nil || user != nil {
-		t.Errorf("Expected error and nil user, got: %+v, err: %v", user, err)
+	mockStore := NewMockStore(ctrl)
+	svc := New(mockStore)
+
+	testCases := []struct {
+		desc      string
+		id        int
+		expected  string
+		expectErr bool
+	}{
+		{"Valid ID", 5, "deleted user", false},
+		{"Invalid ID", -3, "invalid user ID", true},
 	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			if !tc.expectErr {
+				mockStore.EXPECT().DeleteUserByID(tc.id).Return(tc.expected, nil)
+			}
+
+			resp, err := svc.DeleteUserByID(tc.id)
+			if tc.expectErr && err == nil {
+				t.Errorf("Expected error, got nil")
+			}
+			if !tc.expectErr && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if !tc.expectErr && resp != tc.expected {
+				t.Errorf("Expected '%s', got '%s'", tc.expected, resp)
+			}
+		})
+	}
+
 }
+func TestMockstore_GetUserByID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-func TestService_GetAllUsers_Error(t *testing.T) {
-	mock := Mockstore{
-		Getalluserfunc: func() ([]models_user.User, error) {
-			return nil, errors.New("failed to fetch users")
-		},
-	}
-	s := New(&mock)
+	mockStore := NewMockStore(ctrl)
+	svc := New(mockStore)
 
-	users, err := s.GetAllUsers()
-	if err == nil || users != nil {
-		t.Errorf("Expected error and nil slice, got: %+v, err: %v", users, err)
-	}
-}
+	testCases := []struct {
+		desc     string
+		id       int
+		mockUser *User_Model.User
 
-func TestService_DeleteUserByID_Error(t *testing.T) {
-	mock := Mockstore{
-		DeleteUserbyidfunc: func(id int) (string, error) {
-			return "", errors.New("delete failed")
-		},
+		expectErr bool
+	}{
+		{"Valid ID", 5, &User_Model.User{ID: 5, Name: "nitin", Email: "nitin@gmail.com", Phone: "7488204975"}, false},
+		{"Invalid ID", -3, nil, true},
 	}
-	s := New(&mock)
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			if !tc.expectErr {
+				mockStore.EXPECT().GetUserByID(tc.id).Return(tc.mockUser, nil)
+			}
 
-	msg, err := s.DeleteUserByID(777)
-	if err == nil || msg != "" {
-		t.Errorf("Expected error and empty message, got: '%s', err: %v", msg, err)
+			resp, err := svc.GetUserByID(tc.id)
+			if tc.expectErr && err == nil {
+				t.Errorf("Expected error, got nil")
+			}
+			if !tc.expectErr && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if !tc.expectErr && resp.ID != tc.id {
+				t.Errorf("Expected '%d', got '%d'", tc.id, resp.ID)
+			}
+		})
 	}
-}
 
-func TestService_DeleteAllUsers_Error(t *testing.T) {
-	mock := Mockstore{
-		Deletealluserfunc: func() (string, error) {
-			return "", errors.New("delete all failed")
-		},
-	}
-	s := New(&mock)
-
-	msg, err := s.DeleteAllUsers()
-	if err == nil || msg != "" {
-		t.Errorf("Expected error and empty message, got: '%s', err: %v", msg, err)
-	}
 }

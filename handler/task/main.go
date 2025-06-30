@@ -65,8 +65,8 @@ func (h *handler) Addtask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to generate JSON response", http.StatusInternalServerError)
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(jsonResponse)
 	if err != nil {
 		http.Error(w, "Error to sending  responses", http.StatusInternalServerError)

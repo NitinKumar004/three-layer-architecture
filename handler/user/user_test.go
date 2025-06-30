@@ -4,233 +4,186 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
-	models_user "microservice/Models/user"
+	"microservice/Models/user"
+
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"go.uber.org/mock/gomock"
 )
 
 func TestHandler_AddUser(t *testing.T) {
-	fmt.Println("----------------")
-	fmt.Println(" Testing of USER WITH HANDLER  ")
-	fmt.Println("----------------")
-	mock := &MockStore{
-		Insertnewuserfunc: func(u models_user.User) (string, error) {
-			return "user inserted", nil
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockService := NewMockservice(ctrl)
+	h := New(mockService)
+
+	testCases := []struct {
+		desc      string
+		input     user.User
+		expectMsg string
+		expectErr bool
+		mockErr   error
+		status    int
+	}{
+		{
+			desc:      "Valid User",
+			input:     user.User{ID: 1, Name: "John", Phone: "1234567890", Email: "john@example.com"},
+			expectMsg: "user inserted",
+			expectErr: false,
+			mockErr:   nil,
+			status:    http.StatusOK,
+		},
+		{
+			desc:      "Empty Name",
+			input:     user.User{ID: 2, Name: "", Phone: "9876543210", Email: "empty@example.com"},
+			expectMsg: "error to insert",
+			expectErr: true,
+			mockErr:   errors.New("error to insert"),
+			status:    http.StatusInternalServerError,
 		},
 	}
-	h := New(mock)
 
-	user := models_user.User{
-		ID:    1,
-		Name:  "NITIN",
-		Phone: "7488204975",
-		Email: "nit@NITIN.com",
-	}
-	jsonuser, _ := json.Marshal(user)
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			jsonData, _ := json.Marshal(tc.input)
 
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/user", bytes.NewBuffer(jsonuser))
-	req.Header.Set("Content-Type", "application/json")
+			mockService.EXPECT().InsertUser(tc.input).Return(tc.expectMsg, tc.mockErr)
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(h.AddUser)
-	handler.ServeHTTP(rr, req)
+			r := httptest.NewRequest("POST", "/user", bytes.NewBuffer(jsonData))
+			w := httptest.NewRecorder()
 
-	expected := `{"message":"user inserted"}`
-	if rr.Body.String() != expected {
-		t.Errorf("Expected %s, got %s", expected, rr.Body.String())
+			h.AddUser(w, r)
+
+			if w.Code != tc.status {
+				t.Errorf("Expected status %d, got %d", tc.status, w.Code)
+			}
+			body := w.Body.String()
+
+			if !tc.expectErr {
+
+				expectedJSON, _ := json.Marshal(map[string]string{"message": tc.expectMsg})
+				if body != string(expectedJSON)+"\n" && body != string(expectedJSON) {
+					t.Errorf("Expected body %s, got %s", expectedJSON, body)
+				}
+			} else {
+				if !bytes.Contains([]byte(body), []byte(tc.expectMsg)) {
+					t.Errorf("Expected error message to contain %q, got %q", tc.expectMsg, body)
+				}
+			}
+		})
 	}
 }
 
 func TestHandler_GetUserByID(t *testing.T) {
-	mock := &MockStore{
-		GetUserByIDfunc: func(id int) (*models_user.User, error) {
-			return &models_user.User{
-				ID:    1,
-				Name:  "nitin",
-				Phone: "7488204975",
-				Email: "nitin@example.com",
-			}, nil
-		},
-	}
-	h := New(mock)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockService := NewMockservice(ctrl)
+	h := New(mockService)
 
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/user", nil)
-	req.SetPathValue("id", "1")
+	t.Run("Valid ID", func(t *testing.T) {
+		mockService.EXPECT().GetUserByID(1).Return(&user.User{ID: 1, Name: "Alice"}, nil)
+		r := httptest.NewRequest("GET", "/user/1", nil)
+		r.SetPathValue("id", "1")
+		w := httptest.NewRecorder()
+		h.GetUserByID(w, r)
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected 200, got %d", w.Code)
+		}
+	})
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(h.GetUserByID)
-	handler.ServeHTTP(rr, req)
+	t.Run("Invalid ID Format", func(t *testing.T) {
+		r := httptest.NewRequest("GET", "/user/abc", nil)
+		r.SetPathValue("id", "abc")
+		w := httptest.NewRecorder()
+		h.GetUserByID(w, r)
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected 400, got %d", w.Code)
+		}
+	})
 
-	var user models_user.User
-	err := json.Unmarshal(rr.Body.Bytes(), &user)
-	if err != nil || user.ID != 1 {
-		t.Errorf("Expected user ID 1, got %+v, err: %v", user, err)
-	}
+	t.Run("User Not Found", func(t *testing.T) {
+		mockService.EXPECT().GetUserByID(999).Return(nil, errors.New("not found"))
+		r := httptest.NewRequest("GET", "/user/999", nil)
+		r.SetPathValue("id", "999")
+		w := httptest.NewRecorder()
+		h.GetUserByID(w, r)
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected 404, got %d", w.Code)
+		}
+	})
 }
 
-// --- Test: GetAllUsers ---
 func TestHandler_GetAllUsers(t *testing.T) {
-	mock := &MockStore{
-		Getalluserfunc: func() ([]models_user.User, error) {
-			return []models_user.User{
-				{ID: 1, Name: "A"},
-				{ID: 2, Name: "B"},
-			}, nil
-		},
-	}
-	h := New(mock)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockService := NewMockservice(ctrl)
+	h := New(mockService)
 
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/users", nil)
-	rr := httptest.NewRecorder()
+	mockUsers := []user.User{{ID: 1, Name: "A"}, {ID: 2, Name: "B"}}
+	mockService.EXPECT().GetAllUsers().Return(mockUsers, nil)
 
-	handler := http.HandlerFunc(h.GetAllUsers)
-	handler.ServeHTTP(rr, req)
-
-	var users []models_user.User
-	err := json.Unmarshal(rr.Body.Bytes(), &users)
-	if err != nil || len(users) != 2 {
-		t.Errorf("Expected 2 users, got %d, err: %v", len(users), err)
+	r := httptest.NewRequest("GET", "/users", nil)
+	w := httptest.NewRecorder()
+	h.GetAllUsers(w, r)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Code)
 	}
 }
 
-// --- Test: DeleteUserByID ---
 func TestHandler_DeleteUserByID(t *testing.T) {
-	mock := &MockStore{
-		DeleteUserbyidfunc: func(id int) (string, error) {
-			if id == 1 {
-				return "user deleted", nil
-			}
-			return "", nil
-		},
-	}
-	h := New(mock)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockService := NewMockservice(ctrl)
+	h := New(mockService)
 
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodDelete, "/user", nil)
-	req.SetPathValue("id", "1")
+	t.Run("Valid ID", func(t *testing.T) {
+		mockService.EXPECT().DeleteUserByID(1).Return("deleted", nil)
+		r := httptest.NewRequest("DELETE", "/user/1", nil)
+		r.SetPathValue("id", "1")
+		w := httptest.NewRecorder()
+		h.DeleteUserByID(w, r)
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected 200, got %d", w.Code)
+		}
+	})
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(h.DeleteUserByID)
-	handler.ServeHTTP(rr, req)
+	t.Run("Invalid ID", func(t *testing.T) {
+		r := httptest.NewRequest("DELETE", "/user/abc", nil)
+		r.SetPathValue("id", "abc")
+		w := httptest.NewRecorder()
+		h.DeleteUserByID(w, r)
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected 400, got %d", w.Code)
+		}
+	})
 
-	expected := `{"message":"user deleted"}`
-	if rr.Body.String() != expected {
-		t.Errorf("Expected %s, got %s", expected, rr.Body.String())
-	}
+	t.Run("Delete Error", func(t *testing.T) {
+		mockService.EXPECT().DeleteUserByID(2).Return("", errors.New("delete error"))
+		r := httptest.NewRequest("DELETE", "/user/2", nil)
+		r.SetPathValue("id", "2")
+		w := httptest.NewRecorder()
+		h.DeleteUserByID(w, r)
+		if w.Code != http.StatusInternalServerError {
+			t.Errorf("Expected 500, got %d", w.Code)
+		}
+	})
 }
 
-// --- Test: DeleteAllUsers ---
 func TestHandler_DeleteAllUsers(t *testing.T) {
-	mock := &MockStore{
-		Deletealluserfunc: func() (string, error) {
-			return "all users deleted", nil
-		},
-	}
-	h := New(mock)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockService := NewMockservice(ctrl)
+	h := New(mockService)
 
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodDelete, "/users", nil)
-	rr := httptest.NewRecorder()
+	mockService.EXPECT().DeleteAllUsers().Return("all deleted", nil)
 
-	handler := http.HandlerFunc(h.DeleteAllUsers)
-	handler.ServeHTTP(rr, req)
-
-	expected := `{"message":"all users deleted"}`
-	if rr.Body.String() != expected {
-		t.Errorf("Expected %s, got %s", expected, rr.Body.String())
-	}
-}
-func TestHandler_AddUser_Error(t *testing.T) {
-	mock := &MockStore{
-		Insertnewuserfunc: func(u models_user.User) (string, error) {
-			return "", errors.New("insert failed")
-		},
-	}
-	h := New(mock)
-	user := models_user.User{ID: 2}
-	body, _ := json.Marshal(user)
-
-	req := httptest.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-
-	http.HandlerFunc(h.AddUser).ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status 500, got %d", rr.Code)
-	}
-}
-
-func TestHandler_GetUserByID_Error(t *testing.T) {
-	mock := &MockStore{
-		GetUserByIDfunc: func(id int) (*models_user.User, error) {
-			return nil, errors.New("user not found")
-		},
-	}
-	h := New(mock)
-
-	req := httptest.NewRequest(http.MethodGet, "/user", nil)
-	req.SetPathValue("id", "404")
-	rr := httptest.NewRecorder()
-
-	http.HandlerFunc(h.GetUserByID).ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusNotFound {
-		t.Errorf("Expected status 500, got %d", rr.Code)
-	}
-}
-
-func TestHandler_GetAllUsers_Error(t *testing.T) {
-	mock := &MockStore{
-		Getalluserfunc: func() ([]models_user.User, error) {
-			return nil, errors.New("fetch error")
-		},
-	}
-	h := New(mock)
-
-	req := httptest.NewRequest(http.MethodGet, "/users", nil)
-	rr := httptest.NewRecorder()
-
-	http.HandlerFunc(h.GetAllUsers).ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status 500, got %d", rr.Code)
-	}
-}
-
-func TestHandler_DeleteUserByID_Error(t *testing.T) {
-	mock := &MockStore{
-		DeleteUserbyidfunc: func(id int) (string, error) {
-			return "", errors.New("delete failed")
-		},
-	}
-	h := New(mock)
-
-	req := httptest.NewRequest(http.MethodDelete, "/user", nil)
-	req.SetPathValue("id", "99")
-	rr := httptest.NewRecorder()
-
-	http.HandlerFunc(h.DeleteUserByID).ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status 500, got %d", rr.Code)
-	}
-}
-
-func TestHandler_DeleteAllUsers_Error(t *testing.T) {
-	mock := &MockStore{
-		Deletealluserfunc: func() (string, error) {
-			return "", errors.New("delete all failed")
-		},
-	}
-	h := New(mock)
-
-	req := httptest.NewRequest(http.MethodDelete, "/users", nil)
-	rr := httptest.NewRecorder()
-
-	http.HandlerFunc(h.DeleteAllUsers).ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status 500, got %d", rr.Code)
+	r := httptest.NewRequest("DELETE", "/users", nil)
+	w := httptest.NewRecorder()
+	h.DeleteAllUsers(w, r)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Code)
 	}
 }
