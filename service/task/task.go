@@ -2,7 +2,7 @@ package task
 
 import (
 	"errors"
-	models_task "microservice/Models/task"
+	Task_Model "microservice/Models/task"
 )
 
 // create a interface of store here that we rhave implement in this code
@@ -10,13 +10,6 @@ import (
 // This allows the Service to interact with any implementation (real DB, mock, etc.),
 // as long as it satisfies this contract.
 // It helps achieve decoupling and testability.
-type Store interface {
-	Insertask(t models_task.Task) (string, error)
-	Getalltask() ([]models_task.Task, error)
-	Gettaskbyid(id int) (*models_task.Task, error)
-	Deletetask(id int) (string, error)
-	Completetask(id int) (string, error)
-}
 
 // Service struct is the business logic layer.
 // It holds a reference to a Store interface, so it can call DB-related methods indirectly.
@@ -34,21 +27,21 @@ func New(s Store) *Service {
 	}
 }
 
-func (s *Service) Insertask(t models_task.Task) (string, error) {
-	if t.TaskName == "" || t.TaskStatus == "" {
+func (s *Service) Insertask(t Task_Model.Task) (string, error) {
+	if t.Name == "" || t.Status == "" {
 		return "", errors.New("task name and status cannot be empty")
 	}
 	return s.store.Insertask(t)
 
 }
-func (s *Service) Getalltask() ([]models_task.Task, error) {
+func (s *Service) Getalltask() ([]Task_Model.Task, error) {
 	tasks, err := s.store.Getalltask()
 	if err != nil {
 		return nil, err
 	}
-	var filtered []models_task.Task
+	var filtered []Task_Model.Task
 	for _, t := range tasks {
-		if t.TaskName != "" {
+		if t.Name != "" {
 			filtered = append(filtered, t)
 		}
 	}
@@ -56,7 +49,7 @@ func (s *Service) Getalltask() ([]models_task.Task, error) {
 	return filtered, nil
 
 }
-func (s *Service) Gettaskbyid(id int) (*models_task.Task, error) {
+func (s *Service) Gettaskbyid(id int) (*Task_Model.Task, error) {
 	if id <= 0 {
 		return nil, errors.New("id should not be negative")
 	}

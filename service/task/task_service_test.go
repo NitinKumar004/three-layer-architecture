@@ -14,15 +14,15 @@ func InsertTaskFunc(t task.Task) (string, error) {
 func GetalltaskFunc() ([]task.Task, error) {
 	alltask := []task.Task{
 		task.Task{
-			TaskID:     1,
-			TaskName:   "complete test cover",
-			TaskStatus: "pending",
-			AssignUser: 1,
+			ID:     1,
+			Name:   "complete test cover",
+			Status: "pending",
+			UserID: 1,
 		}, {
-			TaskID:     21,
-			TaskName:   "complete test cover to 100%",
-			TaskStatus: "complete",
-			AssignUser: 64,
+			ID:     21,
+			Name:   "complete test cover to 100%",
+			Status: "complete",
+			UserID: 64,
 		},
 	}
 	return alltask, nil
@@ -32,10 +32,10 @@ func GetalltaskFunc() ([]task.Task, error) {
 func GettaskbyidFunc(id int) (*task.Task, error) {
 
 	D := task.Task{
-		TaskID:     1,
-		TaskName:   "complete test cover",
-		TaskStatus: "pending",
-		AssignUser: 1,
+		ID:     1,
+		Name:   "complete test cover",
+		Status: "pending",
+		UserID: 1,
 	}
 
 	return &D, nil
@@ -50,10 +50,10 @@ func TestInsertask_Success(t *testing.T) {
 	}
 	s := New(&mock)
 	task := task.Task{
-		TaskID:     1,
-		TaskName:   "testing file",
-		TaskStatus: "pending",
-		AssignUser: 4,
+		ID:     1,
+		Name:   "testing file",
+		Status: "pending",
+		UserID: 4,
 	}
 	data, err := s.Insertask(task)
 	if err != nil || data != "task inserted" {
@@ -71,9 +71,9 @@ func TestGETBYID_Success(t *testing.T) {
 	if err != nil {
 		t.Errorf("errror to getting call")
 	}
-	if data.TaskName != "complete test cover" || data.TaskStatus != "pending" || data.TaskID != 1 || data.AssignUser != 1 {
-		t.Errorf("getting task data. Got: TaskName=%s, TaskStatus=%s, TaskID=%d, AssignUser=%d",
-			data.TaskName, data.TaskStatus, data.TaskID, data.AssignUser)
+	if data.Name != "complete test cover" || data.Status != "pending" || data.ID != 1 || data.UserID != 1 {
+		t.Errorf("getting task data. Got: Name=%s, Status=%s, ID=%d, ID=%d",
+			data.Name, data.Status, data.ID, data.UserID)
 	}
 
 }
@@ -134,10 +134,10 @@ func TestInsertask_Error(t *testing.T) {
 	s := New(&mock)
 
 	_, err := s.Insertask(task.Task{
-		TaskID:     99,
-		TaskName:   "fail",
-		TaskStatus: "error",
-		AssignUser: 0,
+		ID:     99,
+		Name:   "fail",
+		Status: "error",
+		UserID: 0,
 	})
 	if err == nil {
 		t.Errorf("Expected error, got nil")
