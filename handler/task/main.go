@@ -8,13 +8,13 @@ import (
 	"strconv"
 )
 
-type service interface {
-	Insertask(t models_task.Task) (string, error)
-	Getalltask() ([]models_task.Task, error)
-	Gettaskbyid(id int) (*models_task.Task, error)
-	Deletetask(id int) (string, error)
-	Completetask(id int) (string, error)
-}
+//type service interface {
+//	Insertask(t models_task.Task) (string, error)
+//	Getalltask() ([]models_task.Task, error)
+//	Gettaskbyid(id int) (*models_task.Task, error)
+//	Deletetask(id int) (string, error)
+//	Completetask(id int) (string, error)
+//}
 
 type handler struct {
 	service service
@@ -23,6 +23,18 @@ type handler struct {
 func New(s service) *handler {
 	return &handler{service: s}
 }
+
+// Addtask handles creating a new task
+// @Summary Add a new task
+// @Description Add a new task to the task list
+// @Accept json
+// @Produce json
+// @Param task body models_task.Task true "Task Info"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /task [post]
+
 func (h *handler) Addtask(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -62,6 +74,16 @@ func (h *handler) Addtask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Gettaskbyid returns a task by ID
+// @Summary Get a task by ID
+// @Description Fetch a task by its ID
+// @Produce json
+// @Param id path int true "Task ID"
+// @Success 200 {object} models_task.Task
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /task/{id} [get]
+
 func (h *handler) Gettaskbyid(w http.ResponseWriter, r *http.Request) {
 	idstr := r.PathValue("id")
 	id, err := strconv.Atoi(idstr)
@@ -88,6 +110,15 @@ func (h *handler) Gettaskbyid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// Getalltask returns all tasks
+// @Summary Get all tasks
+// @Description Fetch all tasks from the system
+// @Produce json
+// @Success 200 {array} models_task.Task
+// @Failure 500 {object} map[string]string
+// @Router /task [get]
+
 func (h *handler) Getalltask(w http.ResponseWriter, r *http.Request) {
 	tasks, err := h.service.Getalltask()
 	if err != nil {
@@ -107,6 +138,16 @@ func (h *handler) Getalltask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// Deletetask deletes a task by ID
+// @Summary Delete a task
+// @Description Delete a task by its ID
+// @Param id path int true "Task ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /task/{id} [delete]
+
 func (h *handler) Deletetask(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
@@ -129,6 +170,16 @@ func (h *handler) Deletetask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// Completetask marks a task as complete
+// @Summary Complete a task
+// @Description Mark a task as completed by its ID
+// @Param id path int true "Task ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /task/{id} [patch]
+
 func (h *handler) Completetask(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	models_task "microservice/Models/task"
+	Task_Model "microservice/Models/task"
 )
 
 // This is defining a custom structure called Store.
@@ -21,35 +21,35 @@ func New(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-func (s *Store) Insertask(t models_task.Task) (string, error) {
+func (s *Store) Insertask(t Task_Model.Task) (string, error) {
 	fmt.Println(t)
-	_, err := s.db.Exec("INSERT INTO taskmanage(taskid, taskname, status, assigned_user_id)VALUES(?,?,?,?)", t.TaskID, t.TaskName, t.TaskStatus, t.AssignUser)
+	_, err := s.db.Exec("INSERT INTO taskmanage(taskid, taskname, status, assigned_user_id)VALUES(?,?,?,?)", t.ID, t.Name, t.Status, t.UserID)
 	if err != nil {
 		return "data not inserted may be primary key issue here is issue : ", err
 	}
 	return "data inserted successfully", nil
 }
 
-func (s *Store) Gettaskbyid(id int) (*models_task.Task, error) {
-	var t models_task.Task
+func (s *Store) Gettaskbyid(id int) (*Task_Model.Task, error) {
+	var t Task_Model.Task
 	row := s.db.QueryRow("SELECT taskid, taskname, status, assigned_user_id FROM taskmanage where taskid=?", id)
 
-	err := row.Scan(&t.TaskID, &t.TaskName, &t.TaskStatus, &t.AssignUser)
+	err := row.Scan(&t.ID, &t.Name, &t.Status, &t.UserID)
 	if err != nil {
 		return nil, err
 	}
 	return &t, nil
 }
 
-func (s *Store) Getalltask() ([]models_task.Task, error) {
-	var alltask []models_task.Task
+func (s *Store) Getalltask() ([]Task_Model.Task, error) {
+	var alltask []Task_Model.Task
 	rowdata, err := s.db.Query("SELECT taskid, taskname, status, assigned_user_id FROM taskmanage")
 	if err != nil {
 		return nil, errors.New("fetching to all data")
 	}
 	for rowdata.Next() {
-		var t models_task.Task
-		err := rowdata.Scan(&t.TaskID, &t.TaskName, &t.TaskStatus, &t.AssignUser)
+		var t Task_Model.Task
+		err := rowdata.Scan(&t.ID, &t.Name, &t.Status, &t.UserID)
 		if err != nil {
 			return nil, errors.New("erro to fetching all data")
 		}

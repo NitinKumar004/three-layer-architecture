@@ -15,12 +15,12 @@ func TestStore_InsertUser(t *testing.T) {
 	}
 	s := New(db)
 	newuser := usermodel.User{
-		UserID:    1,
-		UserName:  "nitin patel",
-		UserPhone: "8558856856",
-		UserEmail: "nitinraj7488@gmail.com",
+		ID:    1,
+		Name:  "nitin patel",
+		Phone: "8558856856",
+		Email: "nitinraj7488@gmail.com",
 	}
-	mock.ExpectExec("INSERT INTO usermanage").WithArgs(newuser.UserID, newuser.UserName, newuser.UserPhone, newuser.UserEmail).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("INSERT INTO usermanage").WithArgs(newuser.ID, newuser.Name, newuser.Phone, newuser.Email).WillReturnResult(sqlmock.NewResult(1, 1))
 	msg, err := s.InsertUser(newuser)
 	if msg != "user inserted successfully" {
 		t.Errorf("expected this %s and got this %s", "user inserted successfully", msg)
@@ -38,15 +38,15 @@ func TestStore_GetUserByID(t *testing.T) {
 	}
 	s := New(db)
 	newuser := usermodel.User{
-		UserID:    1,
-		UserName:  "nitin patel",
-		UserPhone: "8558856856",
-		UserEmail: "nitinraj7488@gmail.com",
+		ID:    1,
+		Name:  "nitin patel",
+		Phone: "8558856856",
+		Email: "nitinraj7488@gmail.com",
 	}
 	TASKID := 1
-	mock.ExpectQuery("SELECT userid, username, userphone, useremail FROM usermanage WHERE userid = ?").WithArgs(TASKID).WillReturnRows(sqlmock.NewRows([]string{"userid", "username", "userphone", "useremail"}).AddRow(newuser.UserID, newuser.UserName, newuser.UserPhone, newuser.UserEmail))
+	mock.ExpectQuery("SELECT userid, username, userphone, useremail FROM usermanage WHERE userid = ?").WithArgs(TASKID).WillReturnRows(sqlmock.NewRows([]string{"userid", "username", "userphone", "useremail"}).AddRow(newuser.ID, newuser.Name, newuser.Phone, newuser.Email))
 	actual, _ := s.GetUserByID(TASKID)
-	if actual.UserID != newuser.UserID || actual.UserEmail != newuser.UserEmail || actual.UserPhone != newuser.UserPhone || actual.UserName != newuser.UserName {
+	if actual.ID != newuser.ID || actual.Email != newuser.Email || actual.Phone != newuser.Phone || actual.Name != newuser.Name {
 		t.Errorf("Expected %+v, got %+v", newuser, actual)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -62,13 +62,13 @@ func TestStore_GetAllUsers(t *testing.T) {
 	s := New(db)
 
 	expectedUsers := []usermodel.User{
-		{UserID: 1, UserName: "Nitin", UserPhone: "1234567890", UserEmail: "nitin@example.com"},
-		{UserID: 2, UserName: "Patel", UserPhone: "9876543210", UserEmail: "patel@example.com"},
+		{ID: 1, Name: "Nitin", Phone: "1234567890", Email: "nitin@example.com"},
+		{ID: 2, Name: "Patel", Phone: "9876543210", Email: "patel@example.com"},
 	}
 
 	rows := sqlmock.NewRows([]string{"userid", "username", "userphone", "useremail"}).
-		AddRow(expectedUsers[0].UserID, expectedUsers[0].UserName, expectedUsers[0].UserPhone, expectedUsers[0].UserEmail).
-		AddRow(expectedUsers[1].UserID, expectedUsers[1].UserName, expectedUsers[1].UserPhone, expectedUsers[1].UserEmail)
+		AddRow(expectedUsers[0].ID, expectedUsers[0].Name, expectedUsers[0].Phone, expectedUsers[0].Email).
+		AddRow(expectedUsers[1].ID, expectedUsers[1].Name, expectedUsers[1].Phone, expectedUsers[1].Email)
 
 	mock.ExpectQuery("SELECT userid, username, userphone, useremail FROM usermanage").WillReturnRows(rows)
 
@@ -147,14 +147,14 @@ func TestStore_InsertUser_SQL_Error(t *testing.T) {
 	s := New(db)
 
 	newuser := usermodel.User{
-		UserID:    1,
-		UserName:  "error user",
-		UserPhone: "0000000000",
-		UserEmail: "error@example.com",
+		ID:    1,
+		Name:  "error user",
+		Phone: "0000000000",
+		Email: "error@example.com",
 	}
 
 	mock.ExpectExec("INSERT INTO usermanage").
-		WithArgs(newuser.UserID, newuser.UserName, newuser.UserPhone, newuser.UserEmail).
+		WithArgs(newuser.ID, newuser.Name, newuser.Phone, newuser.Email).
 		WillReturnError(errors.New("primary key violation"))
 
 	msg, err := s.InsertUser(newuser)

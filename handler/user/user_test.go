@@ -23,10 +23,10 @@ func TestHandler_AddUser(t *testing.T) {
 	h := New(mock)
 
 	user := models_user.User{
-		UserID:    1,
-		UserName:  "NITIN",
-		UserPhone: "7488204975",
-		UserEmail: "nit@NITIN.com",
+		ID:    1,
+		Name:  "NITIN",
+		Phone: "7488204975",
+		Email: "nit@NITIN.com",
 	}
 	jsonuser, _ := json.Marshal(user)
 
@@ -47,10 +47,10 @@ func TestHandler_GetUserByID(t *testing.T) {
 	mock := &MockStore{
 		GetUserByIDfunc: func(id int) (*models_user.User, error) {
 			return &models_user.User{
-				UserID:    1,
-				UserName:  "nitin",
-				UserPhone: "7488204975",
-				UserEmail: "nitin@example.com",
+				ID:    1,
+				Name:  "nitin",
+				Phone: "7488204975",
+				Email: "nitin@example.com",
 			}, nil
 		},
 	}
@@ -65,7 +65,7 @@ func TestHandler_GetUserByID(t *testing.T) {
 
 	var user models_user.User
 	err := json.Unmarshal(rr.Body.Bytes(), &user)
-	if err != nil || user.UserID != 1 {
+	if err != nil || user.ID != 1 {
 		t.Errorf("Expected user ID 1, got %+v, err: %v", user, err)
 	}
 }
@@ -75,8 +75,8 @@ func TestHandler_GetAllUsers(t *testing.T) {
 	mock := &MockStore{
 		Getalluserfunc: func() ([]models_user.User, error) {
 			return []models_user.User{
-				{UserID: 1, UserName: "A"},
-				{UserID: 2, UserName: "B"},
+				{ID: 1, Name: "A"},
+				{ID: 2, Name: "B"},
 			}, nil
 		},
 	}
@@ -147,7 +147,7 @@ func TestHandler_AddUser_Error(t *testing.T) {
 		},
 	}
 	h := New(mock)
-	user := models_user.User{UserID: 2}
+	user := models_user.User{ID: 2}
 	body, _ := json.Marshal(user)
 
 	req := httptest.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(body))

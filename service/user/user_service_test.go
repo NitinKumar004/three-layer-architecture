@@ -18,10 +18,10 @@ func TestMockstore_InsertUser(t *testing.T) {
 	}
 	s := New(&mock)
 	newuser := models_user.User{
-		UserID:    12,
-		UserEmail: "nitinraj7488204975@gmail.com",
-		UserName:  "Nitin Kumar",
-		UserPhone: "7488204975",
+		ID:    12,
+		Email: "nitinraj7488204975@gmail.com",
+		Name:  "Nitin Kumar",
+		Phone: "7488204975",
 	}
 	data, err := s.InsertUser(newuser)
 	if err != nil || data != "Insert new user successfully" {
@@ -33,10 +33,10 @@ func TestMockstore_InsertUser(t *testing.T) {
 func TestMockstore_GetUserByID(t *testing.T) {
 	mock := Mockstore{GetUserByIDfunc: func(id int) (*models_user.User, error) {
 		task := models_user.User{
-			UserID:    12,
-			UserEmail: "nitinraj7488204975@gmail.com",
-			UserName:  "Nitin Kumar",
-			UserPhone: "7488204975",
+			ID:    12,
+			Email: "nitinraj7488204975@gmail.com",
+			Name:  "Nitin Kumar",
+			Phone: "7488204975",
 		}
 		return &task, nil
 
@@ -47,9 +47,9 @@ func TestMockstore_GetUserByID(t *testing.T) {
 	if err != nil {
 		t.Errorf("error to fetching the data")
 	}
-	if data.UserID != 12 || data.UserEmail != "nitinraj7488204975@gmail.com" || data.UserName != "Nitin Kumar" || data.UserPhone != "7488204975" {
+	if data.ID != 12 || data.Email != "nitinraj7488204975@gmail.com" || data.Name != "Nitin Kumar" || data.Phone != "7488204975" {
 		t.Errorf("expected this %d %s %s %s and got this %d %s %s %s", 12, "nitinraj7488204975@gmail.com", "Nitin Kumar", "7488204975",
-			data.UserID, data.UserEmail, data.UserName, data.UserPhone)
+			data.ID, data.Email, data.Name, data.Phone)
 	}
 
 }
@@ -58,16 +58,16 @@ func TestMockstore_GetAllUsers(t *testing.T) {
 	mock := Mockstore{Getalluserfunc: func() ([]models_user.User, error) {
 		data := []models_user.User{
 			models_user.User{
-				UserID:    1,
-				UserName:  "nitin",
-				UserEmail: "nitin@gmail.com",
-				UserPhone: "7488204975",
+				ID:    1,
+				Name:  "nitin",
+				Email: "nitin@gmail.com",
+				Phone: "7488204975",
 			},
 			models_user.User{
-				UserID:    2,
-				UserName:  "nishant",
-				UserEmail: "nishant@gmail.com",
-				UserPhone: "248355335",
+				ID:    2,
+				Name:  "nishant",
+				Email: "nishant@gmail.com",
+				Phone: "248355335",
 			},
 		}
 		return data, nil
@@ -117,10 +117,10 @@ func TestService_InsertUser_Error(t *testing.T) {
 	s := New(&mock)
 
 	newuser := models_user.User{
-		UserID:    99,
-		UserEmail: "fail@example.com",
-		UserName:  "Fail Case",
-		UserPhone: "0000000000",
+		ID:    99,
+		Email: "fail@example.com",
+		Name:  "Fail Case",
+		Phone: "0000000000",
 	}
 	msg, err := s.InsertUser(newuser)
 	if err == nil || msg != "" {

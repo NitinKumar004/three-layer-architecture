@@ -25,10 +25,10 @@ func TestHandler_Addtask(t *testing.T) {
 	h := New(mock)
 
 	task := taskmodel.Task{
-		TaskID:     1,
-		TaskName:   "working on project",
-		TaskStatus: "pending",
-		AssignUser: 2,
+		ID:     1,
+		Name:   "working on project",
+		Status: "pending",
+		UserID: 2,
 	}
 
 	jsontask, err := json.Marshal(task)
@@ -57,10 +57,10 @@ func TestHandler_Addtask(t *testing.T) {
 func TestHandler_Gettaskbyid(t *testing.T) {
 	mock := &Mockstore{GettaskbyidFunc: func(id int) (*taskmodel.Task, error) {
 		task := taskmodel.Task{
-			TaskID:     1,
-			TaskName:   "GO HOME",
-			TaskStatus: "pending",
-			AssignUser: 1,
+			ID:     1,
+			Name:   "GO HOME",
+			Status: "pending",
+			UserID: 1,
 		}
 		return &task, nil
 
@@ -86,22 +86,22 @@ func TestHandler_Gettaskbyid(t *testing.T) {
 		t.Fatalf("failed to unmarshal response: %v", err)
 
 	}
-	if tasknew.TaskID != 1 && tasknew.TaskName != "GO HOME" {
-		t.Errorf("expected this %d %s got this %d %s", 1, "GO HOME", tasknew.TaskID, tasknew.TaskName)
+	if tasknew.ID != 1 && tasknew.Name != "GO HOME" {
+		t.Errorf("expected this %d %s got this %d %s", 1, "GO HOME", tasknew.ID, tasknew.Name)
 	}
 
 }
 func TestHandler_Getalltask(t *testing.T) {
 	mock := &Mockstore{GetalltaskFunc: func() ([]taskmodel.Task, error) {
 		alltask := []taskmodel.Task{
-			{TaskID: 1,
-				TaskName:   "GO HOME",
-				TaskStatus: "pending",
-				AssignUser: 1},
-			{TaskID: 2,
-				TaskName:   "GO HOME by bus",
-				TaskStatus: "complete",
-				AssignUser: 44},
+			{ID: 1,
+				Name:   "GO HOME",
+				Status: "pending",
+				UserID: 1},
+			{ID: 2,
+				Name:   "GO HOME by bus",
+				Status: "complete",
+				UserID: 44},
 		}
 		return alltask, nil
 
@@ -189,10 +189,10 @@ func TestHandler_Addtask_Error(t *testing.T) {
 	h := New(mock)
 
 	task := taskmodel.Task{
-		TaskID:     1,
-		TaskName:   "broken",
-		TaskStatus: "pending",
-		AssignUser: 2,
+		ID:     1,
+		Name:   "broken",
+		Status: "pending",
+		UserID: 2,
 	}
 
 	jsontask, _ := json.Marshal(task)

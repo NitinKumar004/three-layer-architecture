@@ -16,7 +16,7 @@ microservice/
 ├── Models/
 │   ├── user/
 │   │   ├── user.go
-│   │   └── user_test.go              # ✅ model-related tests (if any)
+│   │   └──           
 │   └── task/
 │       ├── task.go
 │       └── task_test.go
@@ -24,15 +24,15 @@ microservice/
 ├── Store/
 │   ├── user/
 │   │   ├── store.go
-│   │   └── store_test.go             # ✅ user store tests
+│   │   └── store_test.go           
 │   └── task/
 │       ├── store.go
-│       └── store_test.go             # ✅ task store tests
+│       └── store_test.go            
 │
 ├── Service/
 │   ├── user/
 │   │   ├── service.go
-│   │   └── service_test.go           # ✅ service logic test
+│   │   └── service_test.go           
 │   └── task/
 │       ├── service.go
 │       └── service_test.go
@@ -40,14 +40,14 @@ microservice/
 ├── Handler/
 │   ├── user/
 │   │   ├── handler.go
-│   │   └── handler_test.go           # ✅ HTTP handler test
+│   │   └── handler_test.go         
 │   └── task/
 │       ├── handler.go
 │       └── handler_test.go
 │
 ├── Database/
 │   ├── connection.go
-│   └── connection_test.go           # ✅ DB connection test
+│   └── connection_test.go          
 │
 └── main.go
 
